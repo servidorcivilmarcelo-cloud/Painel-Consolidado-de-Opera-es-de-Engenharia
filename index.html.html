@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAINEL CONSOLIDADO DE OPERAÇÕES DE ENGENHARIA — COE — 26/MAR/2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#f3f6fb;--surface:#ffffff;--surface-2:#f8fafc;--surface-3:#eef3f8;
+      --primary:#1f4e79;--primary-2:#2e6da4;--secondary:#355c7d;
+      --accent:#0f766e;--accent-2:#14b8a6;--highlight:#d97706;
+      --text:#1f2937;--text-soft:#4b5563;--muted:#6b7280;--border:#cfd8e3;
+      --success:#198754;--warning:#d97706;--danger:#c0392b;--info:#2563eb;
+      --white:#ffffff;--shadow:0 10px 24px rgba(31,78,121,.08);--radius:14px;
+    }
+    *{box-sizing:border-box;}
+    html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,var(--bg) 0%,#dde7f2 100%);color:var(--text);}
+    .app{max-width:1860px;margin:0 auto;padding:20px;}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;background:linear-gradient(135deg,#0d2137 0%,var(--primary) 50%,var(--secondary) 100%);color:#fff;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:18px;}
+    .title-wrap h1{margin:0;font-size:22px;line-height:1.25;color:#fff;letter-spacing:.3px;}
+    .title-wrap p{margin:8px 0 0;color:#cddaeb;font-size:12px;line-height:1.55;}
+    .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;}
+    button{border:none;padding:12px 16px;border-radius:10px;cursor:pointer;font-weight:700;transition:.2s ease;box-shadow:0 4px 12px rgba(0,0,0,.08);}
+    button:hover{transform:translateY(-1px);opacity:.97;}
+    .btn-warning{background:var(--highlight);color:#fff;}
+
+    .tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px;}
+    .tab-btn{background:var(--surface);color:var(--primary);border:1px solid var(--border);padding:13px 8px;border-radius:12px;text-align:center;font-weight:700;font-size:11.5px;line-height:1.3;}
+    .tab-btn.active{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-2) 100%);color:#fff;border-color:transparent;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+
+    .grid{display:grid;gap:16px;}
+    .grid-5{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+    .grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+    .grid-3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+    .grid-2{grid-template-columns:repeat(auto-fit,minmax(460px,1fr));}
+
+    .panel{background:linear-gradient(180deg,var(--surface) 0%,var(--surface-2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
+    .panel h2{margin:0 0 14px;font-size:16px;line-height:1.35;border-bottom:1px solid var(--border);padding-bottom:10px;color:var(--primary);}
+    .panel h3{margin:14px 0 10px;color:var(--secondary);font-size:14px;line-height:1.35;}
+
+    .kpi{background:linear-gradient(180deg,#f8fbff 0%,#eef4fb 100%);border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:12px;padding:14px;min-height:100px;display:flex;flex-direction:column;justify-content:center;}
+    .kpi .label{color:var(--text-soft);font-size:10px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;display:block;font-weight:700;}
+    .kpi .value{font-size:24px;font-weight:800;color:var(--primary);line-height:1.15;word-break:break-word;}
+    .kpi .sub{font-size:11px;color:var(--muted);margin-top:4px;}
+    .kpi.alert{border-left-color:var(--danger);}
+    .kpi.warn{border-left-color:var(--warning);}
+    .kpi.ok{border-left-color:var(--success);}
+    .kpi.info-k{border-left-color:var(--info);}
+
+    .badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:700;margin-right:5px;margin-bottom:3px;white-space:nowrap;}
+    .b-success{background:rgba(25,135,84,.12);color:var(--success);border:1px solid rgba(25,135,84,.25);}
+    .b-warning{background:rgba(217,119,6,.12);color:var(--warning);border:1px solid rgba(217,119,6,.25);}
+    .b-danger{background:rgba(192,57,43,.12);color:var(--danger);border:1px solid rgba(192,57,43,.25);}
+    .b-info{background:rgba(37,99,235,.12);color:var(--info);border:1px solid rgba(37,99,235,.25);}
+
+    .risk-grave,.risk-medio,.risk-leve{padding:12px;border-radius:10px;margin-bottom:10px;line-height:1.55;font-size:12.5px;}
+    .risk-grave{background:rgba(192,57,43,.07);border-left:5px solid var(--danger);}
+    .risk-medio{background:rgba(217,119,6,.07);border-left:5px solid var(--warning);}
+    .risk-leve{background:rgba(25,135,84,.07);border-left:5px solid var(--success);}
+
+    .table-wrap{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--white);margin-top:10px;}
+    table{width:100%;border-collapse:collapse;font-size:11.5px;}
+    th,td{border:1px solid var(--border);padding:7px 9px;vertical-align:top;text-align:left;}
+    th{background:linear-gradient(180deg,#eaf2fb 0%,#dce8f5 100%);color:var(--primary);font-weight:700;line-height:1.35;}
+    td{background:#fff;}
+
+    .progress{height:20px;width:100%;background:#dbe5ef;border:1px solid var(--border);border-radius:999px;overflow:hidden;margin-top:5px;}
+    .progress>div{height:100%;background:linear-gradient(90deg,var(--primary-2),var(--accent-2));text-align:center;font-size:10px;font-weight:700;line-height:20px;color:#fff;transition:.4s ease;white-space:nowrap;}
+    .progress.red>div{background:linear-gradient(90deg,#c0392b,#e74c3c);}
+    .progress.yellow>div{background:linear-gradient(90deg,#d97706,#f59e0b);}
+    .progress.green>div{background:linear-gradient(90deg,#198754,#22c55e);}
+
+    .summary-box{border-left:4px solid var(--accent);background:linear-gradient(180deg,#f7fbfb 0%,#edf7f6 100%);padding:14px;border-radius:10px;color:var(--text);line-height:1.6;font-size:12.5px;}
+    .chart-wrap{position:relative;width:100%;min-height:300px;background:linear-gradient(180deg,#fbfdff 0%,#f2f7fc 100%);border:1px solid var(--border);border-radius:12px;padding:12px;}
+    .signature{text-align:right;line-height:1.7;color:var(--text);font-size:12px;margin-top:16px;}
+    .small{font-size:11px;color:var(--muted);}
+    .mini-note{font-size:11px;color:var(--text-soft);line-height:1.5;margin-top:8px;}
+    .hide-print{display:block;}
+
+    .swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+    .swot-card{border-radius:12px;padding:14px;line-height:1.6;font-size:12.5px;}
+    .swot-s{background:rgba(25,135,84,.08);border:1px solid rgba(25,135,84,.25);}
+    .swot-w{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);}
+    .swot-o{background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);}
+    .swot-t{background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.25);}
+    .swot-card strong{display:block;margin-bottom:6px;font-size:13px;}
+
+    .priority-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+    .priority-card{border-radius:12px;padding:14px;line-height:1.6;font-size:12.5px;border:1px solid var(--border);}
+    .pq1{background:rgba(25,135,84,.06);border-left:5px solid var(--success);}
+    .pq2{background:rgba(37,99,235,.06);border-left:5px solid var(--info);}
+    .pq3{background:rgba(217,119,6,.06);border-left:5px solid var(--warning);}
+    .pq4{background:rgba(107,114,128,.06);border-left:5px solid var(--muted);}
+
+    .coe-header{background:linear-gradient(135deg,#0d2137 0%,#1a3a5c 100%);color:#fff;border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;border:2px solid #2e6da4;}
+    .coe-header h2{color:#fff;border-bottom:1px solid rgba(255,255,255,.2);padding-bottom:10px;margin:0 0 10px;font-size:18px;}
+    .coe-header p{color:#cddaeb;font-size:12px;line-height:1.5;margin:0;}
+
+    .coe-section{background:linear-gradient(180deg,#f0f4fa 0%,#e4ecf5 100%);border:2px solid var(--primary-2);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+    .coe-section h3{color:var(--primary);font-size:15px;margin:0 0 12px;border-bottom:2px solid var(--primary-2);padding-bottom:8px;}
+
+    @media(max-width:1200px){.tabs{grid-template-columns:repeat(4,1fr);}}
+    @media(max-width:980px){.tabs{grid-template-columns:repeat(3,1fr);}.topbar{flex-direction:column;}}
+    @media(max-width:640px){.tabs{grid-template-columns:1fr;}.grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr;}.swot-grid,.priority-grid{grid-template-columns:1fr;}}
+
+    @media print{
+      @page{size:A4 landscape;margin:8mm;}
+      html,body{width:297mm;min-height:210mm;background:#fff!important;color:#000!important;}
+      body{font-size:9.5px;}
+      .app{max-width:100%;padding:0;}
+      .hide-print{display:none!important;}
+      .tab-content{display:block!important;}
+      .tabs{display:none!important;}
+      .topbar,.panel,.kpi,.summary-box,.chart-wrap,.swot-card,.priority-card,.coe-header,.coe-section{background:#fff!important;color:#000!important;border:1px solid #8f9aa7!important;box-shadow:none!important;break-inside:avoid;page-break-inside:avoid;}
+      .title-wrap h1,.panel h2,.panel h3,.kpi .value,.coe-header h2,.coe-section h3{color:#000!important;}
+      .title-wrap p,.small,.mini-note,.coe-header p{color:#333!important;}
+      th{background:#e9eef5!important;color:#000!important;}
+      td{background:#fff!important;}
+      .progress{border:1px solid #999!important;background:#eee!important;}
+      .progress>div{background:#6b7280!important;color:#fff!important;}
+      canvas{max-width:100%!important;}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ==================== TOPBAR ==================== -->
+  <div class="topbar">
+    <div class="title-wrap">
+      <h1>PAINEL CONSOLIDADO DE OPERAÇÕES DE ENGENHARIA — 26/MAR/2026</h1>
+      <p>5 Obras Monitoradas · Nordeste (PE / CE) · GDH: 261700MAR26<br>
+      Visão integrada: PHNG Acesso 02 · 3ª CIA FZO 14ºBIMtz · PAV CMD 14ºBIMtz · CAFAM HGeF · Canil + Área de Convivência FGT<br>
+      Análise desenvolvida pelo SC Marcelo — COE</p>
+    </div>
+    <div class="actions hide-print">
+      <button class="btn-warning" onclick="window.print()">Exportar PDF A4 Paisagem</button>
+    </div>
+  </div>
+
+  <!-- ==================== KPIs CONSOLIDADOS ==================== -->
+  <div class="grid grid-5 panel">
+    <div class="kpi info-k">
+      <span class="label">Total de Obras</span>
+      <div class="value">5</div>
+      <div class="sub">PE (3) · CE (2 locais, 3 obras)</div>
+    </div>
+    <div class="kpi">
+      <span class="label">Valor Total Consolidado</span>
+      <div class="value" style="font-size:18px;">R$ 3,74 Mi</div>
+      <div class="sub">R$ 3.740.929,34</div>
+    </div>
+    <div class="kpi warn">
+      <span class="label">Execução Média Ponderada</span>
+      <div class="value">45,7%</div>
+      <div class="sub">Média ponderada por valor</div>
+    </div>
+    <div class="kpi">
+      <span class="label">Efetivo Total Mobilizado</span>
+      <div class="value">63</div>
+      <div class="sub">Militares em 5 obras</div>
+    </div>
+    <div class="kpi alert">
+      <span class="label">Obras com Risco Crítico</span>
+      <div class="value">2</div>
+      <div class="sub">PHNG + Área Convivência FGT (prazo)</div>
+    </div>
+  </div>
+
+  <!-- ==================== TABS ==================== -->
+  <div class="tabs hide-print">
+    <button class="tab-btn active" onclick="openTab('tab0',this)">Visão Consolidada</button>
+    <button class="tab-btn" onclick="openTab('tab1',this)">PHNG Acesso 02</button>
+    <button class="tab-btn" onclick="openTab('tab2',this)">3ª CIA FZO 14ºBIMtz</button>
+    <button class="tab-btn" onclick="openTab('tab3',this)">PAV CMD 14ºBIMtz</button>
+    <button class="tab-btn" onclick="openTab('tab4',this)">CAFAM HGeF</button>
+    <button class="tab-btn" onclick="openTab('tab5',this)">Canil + Área FGT</button>
+    <button class="tab-btn" onclick="openTab('tab6',this)">Análise COE</button>
+  </div>
+
+  <!-- ==================== ABA 0 — VISÃO CONSOLIDADA ==================== -->
+  <div id="tab0" class="tab-content active">
+    <div class="panel">
+      <h2>Quadro Comparativo das Operações — 26/MAR/2026</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:16%;">Obra</th>
+              <th style="width:10%;">Unidade Executora</th>
+              <th style="width:8%;">Local</th>
+              <th style="width:9%;">Valor (R$)</th>
+              <th style="width:6%;">% Exec.</th>
+              <th style="width:6%;">Dia Trab.</th>
+              <th style="width:7%;">Início</th>
+              <th style="width:5%;">Efetivo</th>
+              <th style="width:9%;">Situação</th>
+              <th style="width:7%;">Clima</th>
+              <th style="width:17%;">Principal Risco</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Pavimentação Acesso 02 PHNG</strong></td>
+              <td>7º BE Cmb</td>
+              <td>Jaboatão/PE</td>
+              <td>1.300.000,00</td>
+              <td style="text-align:center;">~55%</td>
+              <td style="text-align:center;">42º</td>
+              <td>17/NOV/25</td>
+              <td style="text-align:center;">23</td>
+              <td><span class="badge b-warning">Em andamento</span></td>
+              <td>Nublado/Chuva</td>
+              <td>CQT e RE inoperantes; areia para 1 semana</td>
+            </tr>
+            <tr>
+              <td><strong>Recuperação 3ª CIA FZO 14ºBIMtz</strong></td>
+              <td>3º BEC (multi-OM)</td>
+              <td>Jaboatão/PE</td>
+              <td>826.194,66</td>
+              <td style="text-align:center;">61%</td>
+              <td style="text-align:center;">123º</td>
+              <td>01/OUT/25</td>
+              <td style="text-align:center;">19</td>
+              <td><span class="badge b-warning">Em andamento</span></td>
+              <td>Ensolarado</td>
+              <td>Instalação hidráulica/elétrica pendente</td>
+            </tr>
+            <tr>
+              <td><strong>Recuperação Telhado PAV CMD 14ºBIMtz</strong></td>
+              <td>3º BEC (multi-OM)</td>
+              <td>Jaboatão/PE</td>
+              <td>890.909,53</td>
+              <td style="text-align:center;">8%</td>
+              <td style="text-align:center;">28º</td>
+              <td>28/JAN/26</td>
+              <td style="text-align:center;">19</td>
+              <td><span class="badge b-danger">Baixa execução</span></td>
+              <td>Ensolarado</td>
+              <td>Apenas 5% cobertura nova; 745m² restam</td>
+            </tr>
+            <tr>
+              <td><strong>Reforma CAFAM HGeF</strong></td>
+              <td>3º BEC</td>
+              <td>Fortaleza/CE</td>
+              <td>160.000,00</td>
+              <td style="text-align:center;">70%</td>
+              <td style="text-align:center;">79º</td>
+              <td>05/NOV/25</td>
+              <td style="text-align:center;">13</td>
+              <td><span class="badge b-success">Avançada</span></td>
+              <td>Ensolarado</td>
+              <td>Inst. elétrica 25%; inst. hidráulica esgoto 30%</td>
+            </tr>
+            <tr>
+              <td><strong>Construção Canil 16ª CIA PE (FGT)</strong></td>
+              <td>1º BEC</td>
+              <td>Fortaleza/CE</td>
+              <td>445.025,77</td>
+              <td style="text-align:center;">24,13%</td>
+              <td style="text-align:center;">47º</td>
+              <td>N/D</td>
+              <td style="text-align:center;">14</td>
+              <td><span class="badge b-warning">Em andamento</span></td>
+              <td>Nublado</td>
+              <td>Estoque zerado em todos os insumos</td>
+            </tr>
+            <tr>
+              <td><strong>Área de Convivência FGT</strong></td>
+              <td>1º BEC</td>
+              <td>Fortaleza/CE</td>
+              <td>118.799,38</td>
+              <td style="text-align:center;">78,54%</td>
+              <td style="text-align:center;">96º</td>
+              <td>N/D</td>
+              <td style="text-align:center;">14</td>
+              <td><span class="badge b-danger">Prazo crítico</span></td>
+              <td>Nublado</td>
+              <td>Previsão 31/MAR/26; 21,46% restante em 5 dias</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mini-note">Nota: O efetivo do Canil e Área de Convivência FGT é compartilhado (14 militares no total para ambas as obras). O efetivo da 3ª CIA FZO e PAV CMD é compartilhado (19 militares). Total real sem sobreposição: ~50 militares.</div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Gráfico — Execução Comparativa das Obras (%)</h2>
+        <div class="chart-wrap">
+          <canvas id="chartConsolidado"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Gráfico — Valor por Obra (R$)</h2>
+        <div class="chart-wrap">
+          <canvas id="chartValor"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Barras de Progresso — Todas as Obras</h2>
+      <div class="grid grid-2">
+        <div>
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:8px 0 2px;">Pavimentação Acesso 02 PHNG</p>
+          <div class="small">~55% (paralelepípedo 52,45% + meio-fio 71,86%)</div>
+          <div class="progress yellow"><div style="width:55%;">~55%</div></div>
+
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:14px 0 2px;">Recuperação 3ª CIA FZO 14ºBIMtz</p>
+          <div class="small">61%</div>
+          <div class="progress yellow"><div style="width:61%;">61%</div></div>
+
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:14px 0 2px;">Recuperação Telhado PAV CMD 14ºBIMtz</p>
+          <div class="small">8%</div>
+          <div class="progress red"><div style="width:8%;">8%</div></div>
+        </div>
+        <div>
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:8px 0 2px;">Reforma CAFAM HGeF</p>
+          <div class="small">70%</div>
+          <div class="progress green"><div style="width:70%;">70%</div></div>
+
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:14px 0 2px;">Construção Canil 16ª CIA PE (FGT)</p>
+          <div class="small">24,13%</div>
+          <div class="progress red"><div style="width:24.13%;">24,13%</div></div>
+
+          <p style="font-size:12px;font-weight:700;color:var(--primary);margin:14px 0 2px;">Área de Convivência FGT</p>
+          <div class="small">78,54% — Previsão de conclusão: 31/MAR/2026</div>
+          <div class="progress green"><div style="width:78.54%;">78,54%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 1 — PHNG ==================== -->
+  <div id="tab1" class="tab-content">
+    <div class="panel">
+      <h2>RDO Nº 42 — Pavimentação em Paralelepípedo do Acesso 02 do PHNG</h2>
+      <div class="grid grid-4">
+        <div class="kpi"><span class="label">Meio-Fio</span><div class="value">71,86%</div><div class="sub">485m de 674,9m</div></div>
+        <div class="kpi warn"><span class="label">Paralelepípedo</span><div class="value">52,45%</div><div class="sub">1.416 m² de 2.699,6 m²</div></div>
+        <div class="kpi"><span class="label">Terraplanagem</span><div class="value">68,16%</div><div class="sub">460m de 674,9m</div></div>
+        <div class="kpi"><span class="label">42º Dia Trab.</span><div class="value">57 dias</div><div class="sub">restantes (projeção RDO)</div></div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Dados da Operação</h2>
+        <div class="table-wrap"><table><tbody>
+          <tr><th style="width:35%;">Unidade Executora</th><td>7º BE Cmb</td></tr>
+          <tr><th>Militar de Ligação</th><td>1º Ten Bruno — (73) 98168-2035</td></tr>
+          <tr><th>Valor / Repasse</th><td>R$ 1.300.000,00 (EME)</td></tr>
+          <tr><th>Efetivo</th><td>23 militares (1 Of, 2 Sgt, 20 Sd EP)</td></tr>
+          <tr><th>Projeto</th><td>674,9m (reduzido de 836m)</td></tr>
+          <tr><th>Paralisação</th><td>13/DEZ/25 a 06/MAR/26 (83 dias)</td></tr>
+          <tr><th>Meteorologia</th><td>Nublado / Chuva pela manhã (25%)</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Riscos Críticos</h2>
+        <div class="risk-grave"><span class="badge b-danger">GRAVE</span><strong>CQT baixada</strong> — Problema no acelerador. Sem previsão de peça desde 20/03.</div>
+        <div class="risk-grave"><span class="badge b-danger">GRAVE</span><strong>Areia para 1 semana</strong> — Risco iminente de paralisação por ruptura de insumo.</div>
+        <div class="risk-grave"><span class="badge b-danger">GRAVE</span><strong>RE com vazamento de óleo</strong> — Trabalhos interrompidos com este equipamento.</div>
+        <div class="risk-medio"><span class="badge b-warning">MÉDIO</span><strong>Retrabalho por chuva</strong> — 40 m² refeitos; 24 m² efetivamente avançados no dia.</div>
+        <div class="risk-medio"><span class="badge b-warning">MÉDIO</span><strong>Interferência de civis</strong> — Veículos tentam passar diariamente pelo canteiro.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Equipamentos</h2>
+      <div class="table-wrap"><table><thead><tr><th>Equip.</th><th>Qtd</th><th>Situação</th><th>Obs</th></tr></thead><tbody>
+        <tr><td>CB</td><td>01</td><td><span class="badge b-success">Operando</span></td><td>—</td></tr>
+        <tr><td>CQT c/ RTA</td><td>01</td><td><span class="badge b-danger">Baixada</span></td><td>Acelerador; s/ previsão de peça</td></tr>
+        <tr><td>CC</td><td>01</td><td><span class="badge b-success">Operando</span></td><td>—</td></tr>
+        <tr><td>RE</td><td>01</td><td><span class="badge b-danger">Defeito</span></td><td>Vazamento de óleo</td></tr>
+        <tr><td>CPD</td><td>01</td><td><span class="badge b-success">Operando</span></td><td>—</td></tr>
+        <tr><td>MC</td><td>01</td><td><span class="badge b-success">Operando</span></td><td>—</td></tr>
+      </tbody></table></div>
+      <div class="mini-note">⚠️ 2 de 6 equipamentos inoperantes (33,3%).</div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 2 — 3ª CIA FZO ==================== -->
+  <div id="tab2" class="tab-content">
+    <div class="panel">
+      <h2>Relatório Nº 123 — Recuperação da 3ª CIA FZO do 14ºBIMtz</h2>
+      <div class="grid grid-4">
+        <div class="kpi"><span class="label">Execução Geral</span><div class="value">61%</div><div class="sub">123º dia trabalhado</div></div>
+        <div class="kpi ok"><span class="label">Valor</span><div class="value" style="font-size:18px;">R$ 826.194</div><div class="sub">EME/DEC</div></div>
+        <div class="kpi"><span class="label">Efetivo</span><div class="value">19</div><div class="sub">Multi-OM (8 organizações)</div></div>
+        <div class="kpi ok"><span class="label">Clima</span><div class="value" style="font-size:18px;">Ensolarado</div></div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Progresso por Etapa</h2>
+        <div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Total</th><th>Executado</th><th>%</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Remoção do piso</td><td>750 m²</td><td>750 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Demolição do banheiro</td><td>80 m²</td><td>80 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Remoção do reboco</td><td>900 m²</td><td>900 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Chapisco</td><td>900 m²</td><td>900 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Reboco</td><td>900 m²</td><td>900 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Contrapiso</td><td>750 m²</td><td>750 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Pintura Selador</td><td>900 m²</td><td>900 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Emassamento</td><td>900 m²</td><td>900 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Instalação hidráulica</td><td>100%</td><td>90%</td><td>90%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Piso granilite</td><td>750 m²</td><td>740 m²</td><td>98,66%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Piso porcelanato</td><td>60 m²</td><td>60 m²</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Serviços do Dia e Insumos</h2>
+        <div class="summary-box">
+          <strong>Executado em 26/03/2026:</strong><br>
+          • Continuação da aplicação do porcelanato e acabamentos da pintura do banheiro 02<br>
+          • Colocação de louças sanitárias<br>
+          • Continuação de reparos nas instalações elétricas<br>
+          • Instalação de portas do banheiro 01 (empresa terceirizada)
+        </div>
+        <h3>Insumos Acumulados</h3>
+        <div class="table-wrap"><table><thead><tr><th>Insumo</th><th>Gasto Dia</th><th>Acumulado</th></tr></thead><tbody>
+          <tr><td>Cimento (50kg)</td><td>1</td><td>553 und</td></tr>
+          <tr><td>Areia</td><td>0,5 m³</td><td>105,08 m³</td></tr>
+          <tr><td>Argamassa (20kg)</td><td>2</td><td>56 und</td></tr>
+          <tr><td>Porcelanato (1,58m²)</td><td>1</td><td>31 und</td></tr>
+          <tr><td>Tinta cinza (18L)</td><td>1</td><td>5 und</td></tr>
+          <tr><td>Tijolo cerâmico</td><td>—</td><td>1.000 und</td></tr>
+          <tr><td>Cal hidratada (20kg)</td><td>—</td><td>289 und</td></tr>
+          <tr><td>Selador (15L)</td><td>—</td><td>50 und</td></tr>
+          <tr><td>Massa corrida (18kg)</td><td>—</td><td>165 und</td></tr>
+          <tr><td>Gesso (40kg)</td><td>—</td><td>8 und</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 3 — PAV CMD ==================== -->
+  <div id="tab3" class="tab-content">
+    <div class="panel">
+      <h2>Relatório Nº 28 — Recuperação do Telhado do PAV CMD 14ºBIMtz</h2>
+      <div class="grid grid-4">
+        <div class="kpi alert"><span class="label">Execução Geral</span><div class="value">8%</div><div class="sub">28º dia trabalhado</div></div>
+        <div class="kpi"><span class="label">Valor</span><div class="value" style="font-size:18px;">R$ 890.909</div><div class="sub">EME/DEC</div></div>
+        <div class="kpi"><span class="label">Cobertura Nova</span><div class="value">5%</div><div class="sub">5 m² de 750 m² — 745 m² restam</div></div>
+        <div class="kpi"><span class="label">Início</span><div class="value" style="font-size:18px;">28/JAN/26</div></div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Dados da Operação</h2>
+        <div class="table-wrap"><table><tbody>
+          <tr><th style="width:35%;">Unidade Executora</th><td>3º BEC / Multi-OM (efetivo compartilhado com 3ª CIA FZO)</td></tr>
+          <tr><th>Militar de Ligação</th><td>1º Ten Rayssy — (86) 99805-3762</td></tr>
+          <tr><th>Efetivo</th><td>19 militares (compartilhado)</td></tr>
+          <tr><th>Clima</th><td>Ensolarado</td></tr>
+          <tr><th>Viatura</th><td>Apoio de viaturas (sem especificação)</td></tr>
+        </tbody></table></div>
+        <h3>Insumos Acumulados</h3>
+        <div class="table-wrap"><table><thead><tr><th>Insumo</th><th>Gasto Dia</th><th>Acumulado</th></tr></thead><tbody>
+          <tr><td>Cimento (50kg)</td><td>—</td><td>4 und</td></tr>
+          <tr><td>Telha romana</td><td>800 und</td><td>800 und</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Serviços e Riscos</h2>
+        <div class="summary-box">
+          <strong>Executado em 26/03/2026:</strong><br>
+          • Colocação de calhas<br>
+          • Remoção de entulhos e telhas antigas<br>
+          • Recuperação de acabamentos de reboco do platibanda<br>
+          • Estocamento de telhas novas<br><br>
+          <strong>Observação:</strong> Entulhos reutilizados para aterro da PTC do batalhão.
+        </div>
+        <div class="risk-grave" style="margin-top:12px;">
+          <span class="badge b-danger">GRAVE</span>
+          <strong>Execução de apenas 8% em 28 dias trabalhados</strong><br>
+          <em>Fato:</em> Apenas 5 m² de 750 m² de cobertura nova executados (5%). O percentual geral da obra é de 8%.<br>
+          <em>Implicação:</em> O ritmo atual é incompatível com qualquer expectativa de prazo razoável. Com 745 m² de cobertura restantes e um ritmo aparente muito lento, a obra pode se estender significativamente. Merece atenção prioritária da liderança.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 4 — CAFAM ==================== -->
+  <div id="tab4" class="tab-content">
+    <div class="panel">
+      <h2>Relatório Nº 79 — Reforma e Ampliação da CAFAM (HGeF)</h2>
+      <div class="grid grid-4">
+        <div class="kpi ok"><span class="label">Execução Geral</span><div class="value">70%</div><div class="sub">79º dia trabalhado</div></div>
+        <div class="kpi"><span class="label">Valor</span><div class="value" style="font-size:18px;">R$ 160.000</div><div class="sub">DOM</div></div>
+        <div class="kpi"><span class="label">Efetivo</span><div class="value">13</div><div class="sub">1 Sgt + 8 SD NB + 4 SD EV</div></div>
+        <div class="kpi ok"><span class="label">Clima</span><div class="value" style="font-size:18px;">Ensolarado</div></div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Progresso por Etapa</h2>
+        <div class="table-wrap"><table><thead><tr><th>Serviço</th><th>%</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Demolição / Abertura janelas e portas</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Erguimento de alvenaria</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Chapisco das paredes</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Vigas (18 vigas)</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Reboco externo</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Reparo do telhado</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Reboco interno</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Nova rede de água fria</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Concretagem do piso (30m²)</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Revestimento paredes banheiros</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Reparo telhado cozinha</td><td>100%</td><td><span class="badge b-success">Concluído</span></td></tr>
+          <tr><td>Revestimento do piso (160m²)</td><td>90%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Instalação elétrica</td><td>25%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Instalação hidráulica esgoto</td><td>30%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Instalação do forro</td><td>50%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Chumbagem portas/janelas</td><td>N/D</td><td><span class="badge b-info">A iniciar</span></td></tr>
+          <tr><td>Pintura</td><td>N/D</td><td><span class="badge b-info">A iniciar</span></td></tr>
+          <tr><td>Revestimento parede cozinha (65m²)</td><td>N/D</td><td><span class="badge b-info">A iniciar</span></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Serviços do Dia e Análise</h2>
+        <div class="summary-box">
+          <strong>Executado em 26/03/2026:</strong><br>
+          • Conclusão do rejunte do piso da suíte acessível<br>
+          • Colocação do vaso sanitário e assento retrátil do banheiro acessível<br>
+          • Início da pintura da suíte acessível<br>
+          • Continuação do emassamento do corredor/convivência e suíte 02<br>
+          • Início do rejunte do piso da suíte 01<br>
+          • Conclusão do rejunte do banheiro da suíte 02<br>
+          • Limpeza geral e manutenção de material
+        </div>
+        <div class="risk-medio" style="margin-top:12px;">
+          <span class="badge b-warning">MÉDIO</span>
+          <strong>Instalações elétrica (25%) e hidráulica de esgoto (30%) com baixa execução</strong><br>
+          Estas frentes são pré-requisito para acabamentos finais (pintura, revestimento, louças). Se não acelerarem, podem se tornar gargalo para conclusão da obra.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 5 — CANIL + ÁREA FGT ==================== -->
+  <div id="tab5" class="tab-content">
+    <div class="grid grid-2">
+      <div class="panel">
+        <h2>Relatório Nº 47 — Construção do Canil 16ª CIA PE (FGT)</h2>
+        <div class="grid grid-3" style="margin-bottom:12px;">
+          <div class="kpi warn"><span class="label">Execução</span><div class="value">24,13%</div><div class="sub">47º relatório</div></div>
+          <div class="kpi"><span class="label">Valor</span><div class="value" style="font-size:16px;">R$ 445.025</div></div>
+          <div class="kpi ok"><span class="label">Previsão Conclusão</span><div class="value" style="font-size:16px;">15/MAI/26</div></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Exec.</th><th>A Executar</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Serviços Auxiliares Administrativos</td><td>52%</td><td>48%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Serviços Complementares</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Serviços Preliminares</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Canteiro de Obras</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Movimento de Terra</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Assentamento de Tubos</td><td>9%</td><td>91%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Ligações Prediais</td><td>3%</td><td>97%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Fundações e Estruturas</td><td>31%</td><td>69%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Instalações Hidrossanitárias</td><td>24%</td><td>76%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Instalações Elétricas</td><td>5%</td><td>95%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Cobertura</td><td>55%</td><td>45%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+        </tbody></table></div>
+        <div class="risk-grave" style="margin-top:10px;">
+          <span class="badge b-danger">GRAVE</span>
+          <strong>Estoque zerado em todos os insumos principais</strong><br>
+          O relatório mostra 0 (zero) em estoque para cimento, areia, brita, tijolo e todos os demais materiais. Consumo diário também zerado em 26/03. A obra depende integralmente do repasse de insumos pela 16ª CIA PE. Risco de paralisação se o fluxo de suprimentos não for mantido.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Relatório Nº 96 — Área de Convivência do Espaço Cultural FGT</h2>
+        <div class="grid grid-3" style="margin-bottom:12px;">
+          <div class="kpi ok"><span class="label">Execução</span><div class="value">78,54%</div><div class="sub">96º relatório</div></div>
+          <div class="kpi"><span class="label">Valor</span><div class="value" style="font-size:16px;">R$ 118.799</div></div>
+          <div class="kpi alert"><span class="label">Previsão Conclusão</span><div class="value" style="font-size:16px;">31/MAR/26</div><div class="sub">5 dias restantes!</div></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Dia</th><th>Exec.</th><th>A Exec.</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Limpeza/Locação/Canteiro</td><td>0%</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Escavações/Fundação/Inst. Subterrâneas</td><td>0%</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Aterro/Contrapiso/Estrutura Madeira</td><td>0%</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Alvenaria</td><td>0%</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Inst. Elétricas e Hidrossanitárias</td><td>0%</td><td>75%</td><td>25%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Fossa/Filtro/Sumidouro/Chapisco/Emboço</td><td>0%</td><td>100%</td><td>0%</td><td><span class="badge b-success">Finalizado</span></td></tr>
+          <tr><td>Telhas e Churrasqueira</td><td>2%</td><td>89%</td><td>11%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Revestimento Cerâmico e Esquadrias</td><td>4%</td><td>58%</td><td>42%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Bancada/Louças/Metais/Portas</td><td>5%</td><td>15%</td><td>85%</td><td><span class="badge b-danger">Atenção</span></td></tr>
+          <tr><td>Emassamento e Pintura</td><td>5%</td><td>77%</td><td>23%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+          <tr><td>Arremetes e Limpeza Geral</td><td>10%</td><td>50%</td><td>50%</td><td><span class="badge b-warning">Em andamento</span></td></tr>
+        </tbody></table></div>
+        <div class="risk-grave" style="margin-top:10px;">
+          <span class="badge b-danger">GRAVE</span>
+          <strong>Prazo de conclusão em 31/MAR/2026 — apenas 5 dias restantes</strong><br>
+          Com 21,46% de obra restante, múltiplas frentes ainda ativas (revestimento 42%, bancada/louças 85%, limpeza 50%) e produção diária na faixa de 2-10% por frente, a conclusão no prazo é extremamente improvável sem aceleração significativa.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA 6 — ANÁLISE COE ==================== -->
+  <div id="tab6" class="tab-content">
+
+    <div class="coe-header">
+      <h2>ANÁLISE DESENVOLVIDA PELO SC MARCELO — COE</h2>
+      <p>Centro de Operações de Engenharia · Análise Consolidada de 5 Operações · Data-base: 26/MAR/2026<br>
+      Documento de apoio à decisão para a liderança · Todos os dados derivados exclusivamente dos RDOs recebidos</p>
+    </div>
+
+    <!-- RESUMO EXECUTIVO COE -->
+    <div class="coe-section">
+      <h3>1. Resumo Executivo Consolidado</h3>
+      <div class="summary-box">
+        O portfólio de 5 operações de engenharia monitoradas na data-base de 26/MAR/2026 apresenta <strong>valor total de R$ 3.740.929,34</strong>, distribuído entre 3 locais no Nordeste (Jaboatão dos Guararapes/PE e Fortaleza/CE), envolvendo <strong>~50 militares efetivos</strong> (descontadas sobreposições de equipes compartilhadas) e 4 organizações executoras (7º BE Cmb, 3º BEC, 1º BEC e multi-OM).<br><br>
+
+        <strong>Situação geral:</strong> O portfólio encontra-se em <strong>estado de atenção</strong>. Duas obras apresentam execução acima de 70% (CAFAM e Área de Convivência FGT), uma em patamar intermediário (3ª CIA FZO, 61%), uma com avanço moderado mas sob pressão operacional severa (PHNG, ~55%) e uma em estágio inicial preocupante (PAV CMD, 8%).<br><br>
+
+        <strong>Principais achados:</strong><br>
+        • <strong>3 obras apresentam riscos graves</strong> que demandam intervenção imediata<br>
+        • A Área de Convivência FGT tem prazo de conclusão em 31/MAR (5 dias) com 21,46% restante — conclusão no prazo é altamente improvável<br>
+        • O PHNG opera com 33% do parque de equipamentos inoperante e areia para apenas 1 semana<br>
+        • O Canil FGT tem estoque zerado em todos os insumos principais<br>
+        • O PAV CMD do 14ºBIMtz apresenta apenas 8% de execução em 28 dias trabalhados, com R$ 890.909 alocados — pior relação investimento/execução do portfólio
+      </div>
+    </div>
+
+    <!-- CLASSIFICAÇÃO DE CRITICIDADE -->
+    <div class="coe-section">
+      <h3>2. Classificação de Criticidade por Obra</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:20%;">Obra</th>
+              <th style="width:8%;">% Exec.</th>
+              <th style="width:10%;">Criticidade</th>
+              <th style="width:12%;">Principal Fator</th>
+              <th style="width:25%;">Diagnóstico</th>
+              <th style="width:25%;">Recomendação Prioritária</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Área Convivência FGT</strong></td>
+              <td>78,54%</td>
+              <td><span class="badge b-danger">CRÍTICA</span></td>
+              <td>Prazo 31/MAR impossível</td>
+              <td>21,46% restante com múltiplas frentes ativas. Bancada/louças a 15%, revestimento cerâmico a 58%, limpeza a 50%. Ritmo diário insuficiente para 5 dias.</td>
+              <td>Revisar formalmente a previsão de conclusão. Comunicar novo prazo realista. Concentrar esforço nas frentes de maior impacto visual e funcional.</td>
+            </tr>
+            <tr>
+              <td><strong>PHNG Acesso 02</strong></td>
+              <td>~55%</td>
+              <td><span class="badge b-danger">CRÍTICA</span></td>
+              <td>Equipamentos + Areia</td>
+              <td>CQT e RE inoperantes (33,3% do parque). Areia para 1 semana. Retrabalho de 40m² por chuva. 57 dias restantes projetados.</td>
+              <td>Providenciar areia imediatamente. Escalar reparo CQT/RE junto ao Pq/Mnt 7ª RM. Implementar cobertura provisória contra intempéries.</td>
+            </tr>
+            <tr>
+              <td><strong>Canil FGT</strong></td>
+              <td>24,13%</td>
+              <td><span class="badge b-warning">ELEVADA</span></td>
+              <td>Estoque zerado</td>
+              <td>Todos os insumos com estoque zero. Dependência total da 16ª CIA PE para repasse. Previsão de 15/MAI com muitas frentes abaixo de 10%.</td>
+              <td>Garantir fluxo contínuo de insumos. Verificar capacidade da 16ª CIA PE de manter abastecimento. Monitorar aderência ao prazo de 15/MAI.</td>
+            </tr>
+            <tr>
+              <td><strong>PAV CMD 14ºBIMtz</strong></td>
+              <td>8%</td>
+              <td><span class="badge b-warning">ELEVADA</span></td>
+              <td>Ritmo muito lento</td>
+              <td>Apenas 5m² de 750m² de cobertura. 28 dias trabalhados com 8% de execução. Obra de R$ 890.909. Efetivo compartilhado com 3ª CIA FZO.</td>
+              <td>Avaliar se o compartilhamento de efetivo está comprometendo esta obra. Considerar priorização ou reforço dedicado ao PAV CMD após conclusão da 3ª CIA FZO.</td>
+            </tr>
+            <tr>
+              <td><strong>CAFAM HGeF</strong></td>
+              <td>70%</td>
+              <td><span class="badge b-success">MODERADA</span></td>
+              <td>Inst. elétricas/hidráulicas</td>
+              <td>70% de execução com maioria das etapas concluídas. Instalação elétrica a 25% e hidráulica de esgoto a 30% são os gargalos restantes.</td>
+              <td>Priorizar fechamento das instalações elétricas e hidráulicas para desbloquear acabamentos finais (pintura, forro, louças).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANÁLISE SWOT CONSOLIDADA -->
+    <div class="coe-section">
+      <h3>3. Análise SWOT Consolidada do Portfólio</h3>
+      <div class="swot-grid">
+        <div class="swot-card swot-s">
+          <strong>🟢 Forças</strong>
+          • Efetivo mobilizado em todas as obras, sem registro de ausência ou indisponibilidade de pessoal<br>
+          • CAFAM (70%) e Área de Convivência (78,54%) em estágio avançado<br>
+          • 3ª CIA FZO com 9 de 11 etapas concluídas — obra próxima do fechamento<br>
+          • Recursos financeiros 100% repassados em todas as obras<br>
+          • PHNG possui estoque robusto de paralelepípedo (~18.700 pedras) e brita suficiente<br>
+          • Multi-OM empregando militares de 8+ organizações — capacidade de articulação demonstrada
+        </div>
+        <div class="swot-card swot-w">
+          <strong>🔴 Fraquezas</strong>
+          • PAV CMD com apenas 8% de execução (pior desempenho do portfólio)<br>
+          • PHNG com 33% do parque de equipamentos inoperante<br>
+          • Canil FGT com estoque zerado em todos os insumos<br>
+          • Compartilhamento de efetivo (14ºBIMtz) pode estar diluindo capacidade<br>
+          • Nenhuma obra informa dados de estoque detalhado com taxa de consumo<br>
+          • Histórico de paralisação de 83 dias no PHNG<br>
+          • Instalações elétricas e hidráulicas são gargalo recorrente (CAFAM 25%, 3ªCIA 90%)
+        </div>
+        <div class="swot-card swot-o">
+          <strong>🔵 Oportunidades</strong>
+          • 3ª CIA FZO próxima da conclusão — libera efetivo para reforço no PAV CMD<br>
+          • Área de Convivência FGT em fase final — libera equipe do 1º BEC para concentrar no Canil<br>
+          • CAFAM com custo relativamente baixo (R$ 160 mil) e boa evolução — potencial de entrega rápida<br>
+          • Redução de escopo do PHNG (836→674,9m) já absorvida<br>
+          • Período de estiagem pode favorecer obras externas (PHNG e cobertura PAV CMD)
+        </div>
+        <div class="swot-card swot-t">
+          <strong>🟠 Ameaças</strong>
+          • Ruptura de areia no PHNG em ~7 dias pode forçar nova paralisação<br>
+          • Prazo de 31/MAR da Área de Convivência será descumprido — impacto institucional<br>
+          • Dependência de Pq/Mnt 7ª RM para peças (CQT sem previsão)<br>
+          • Fluxo de insumos do Canil dependente de terceiros (16ª CIA PE)<br>
+          • Período chuvoso no Nordeste pode afetar obras externas de MAR a JUL<br>
+          • Acúmulo de obras com baixa execução pode gerar pressão institucional por resultados
+        </div>
+      </div>
+    </div>
+
+    <!-- MATRIZ DE PRIORIDADE CONSOLIDADA -->
+    <div class="coe-section">
+      <h3>4. Matriz de Decisão Prioritária — Consolidada</h3>
+      <div class="priority-grid">
+        <div class="priority-card pq1">
+          <strong>🟢 QUICK WINS — Alto Impacto / Baixo Esforço</strong><br><br>
+          <strong>1. Reposição de areia PHNG</strong><br>
+          Previne paralisação iminente. Acionar fornecedor local.<br><br>
+          <strong>2. Cobertura provisória PHNG</strong><br>
+          Lonas sobre material não rejuntado. Elimina retrabalho por chuva.<br><br>
+          <strong>3. Revisão formal do prazo Área Convivência FGT</strong><br>
+          Reconhecer o descumprimento e comunicar novo prazo realista.
+        </div>
+        <div class="priority-card pq2">
+          <strong>🔵 ESTRUTURANTES — Alto Impacto / Alto Esforço</strong><br><br>
+          <strong>4. Reparo CQT e RE do PHNG</strong><br>
+          Escalar junto ao Pq/Mnt 7ª RM. Avaliar alternativas (locação, empréstimo).<br><br>
+          <strong>5. Garantir fluxo de insumos Canil FGT</strong><br>
+          Formalizar cronograma de entregas com a 16ª CIA PE.<br><br>
+          <strong>6. Acelerar inst. elétrica/hidráulica CAFAM</strong><br>
+          Estas frentes são gargalo para conclusão. Considerar reforço de especialista.
+        </div>
+        <div class="priority-card pq3">
+          <strong>🟠 MELHORIAS — Médio Impacto / Baixo Esforço</strong><br><br>
+          <strong>7. Sinalização robusta PHNG</strong><br>
+          Barreiras e sinalização contra interferência de civis.<br><br>
+          <strong>8. Planejamento de sequência PAV CMD</strong><br>
+          Definir se a prioridade é concluir 3ª CIA FZO antes de concentrar no PAV CMD.
+        </div>
+        <div class="priority-card pq4">
+          <strong>⚪ CAUTELA — Baixo Impacto / Alto Esforço</strong><br><br>
+          Não identificado neste ciclo. Todas as ações mapeadas apresentam impacto relevante.
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANO DE AÇÃO CONSOLIDADO -->
+    <div class="coe-section">
+      <h3>5. Plano de Ação Consolidado — Recomendações por Obra</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:14%;">Obra</th>
+              <th style="width:16%;">Problema</th>
+              <th style="width:16%;">Evidência</th>
+              <th style="width:22%;">Ação</th>
+              <th style="width:8%;">Prioridade</th>
+              <th style="width:8%;">Horizonte</th>
+              <th style="width:8%;">Responsável Sugerido</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>PHNG</td><td>Areia para 1 semana</td><td>RDO Nº 42</td><td>Acionar fornecedor imediatamente</td><td><span class="badge b-danger">URGENTE</span></td><td>Imediato</td><td>Cmt Destacamento</td></tr>
+            <tr><td>PHNG</td><td>CQT baixada</td><td>RDO Nº 42</td><td>Escalar Pq/Mnt 7ªRM; buscar alternativa</td><td><span class="badge b-danger">URGENTE</span></td><td>Curto prazo</td><td>7º BE Cmb</td></tr>
+            <tr><td>PHNG</td><td>RE com defeito</td><td>RDO Nº 42</td><td>Manutenção corretiva ou substituição</td><td><span class="badge b-danger">URGENTE</span></td><td>Curto prazo</td><td>7º BE Cmb</td></tr>
+            <tr><td>PHNG</td><td>Retrabalho por chuva</td><td>40m² refeitos em 26/03</td><td>Coberturas provisórias; rejunte no mesmo dia</td><td><span class="badge b-warning">ALTA</span></td><td>Imediato</td><td>Cmt Destacamento</td></tr>
+            <tr><td>Área Conv. FGT</td><td>Prazo 31/MAR impossível</td><td>21,46% restante; 5 dias</td><td>Revisar prazo; comunicar novo cronograma</td><td><span class="badge b-danger">URGENTE</span></td><td>Imediato</td><td>1º BEC / FGT</td></tr>
+            <tr><td>Canil FGT</td><td>Estoque zerado</td><td>Relatório Nº 47</td><td>Garantir fluxo de insumos 16ª CIA PE</td><td><span class="badge b-danger">URGENTE</span></td><td>Curto prazo</td><td>1º BEC / 16ª CIA PE</td></tr>
+            <tr><td>PAV CMD</td><td>8% em 28 dias</td><td>Relatório Nº 28</td><td>Avaliar priorização pós 3ªCIA FZO; reforço</td><td><span class="badge b-warning">ALTA</span></td><td>Médio prazo</td><td>3º BEC / 14ºBIMtz</td></tr>
+            <tr><td>CAFAM</td><td>Inst. elétrica 25%</td><td>Relatório Nº 79</td><td>Reforço de especialista; desbloquear acabamentos</td><td><span class="badge b-warning">ALTA</span></td><td>Curto prazo</td><td>3º BEC / HGeF</td></tr>
+            <tr><td>3ª CIA FZO</td><td>Inst. hidráulica 90%</td><td>Relatório Nº 123</td><td>Concluir 10% restantes para liberar efetivo</td><td><span class="badge b-info">MODERADA</span></td><td>Curto prazo</td><td>1º Ten Rayssy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- KPIs DE SAÚDE -->
+    <div class="coe-section">
+      <h3>6. KPIs de Saúde do Portfólio</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Indicador</th><th>Valor</th><th>Sinal</th><th>Leitura Estratégica</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Execução média ponderada (por valor)</td><td>45,7%</td><td><span class="badge b-warning">ATENÇÃO</span></td><td>Menos da metade do investimento total convertido em obra entregue</td></tr>
+            <tr><td>Obras com risco crítico</td><td>2 de 5</td><td><span class="badge b-danger">CRÍTICO</span></td><td>40% do portfólio sob pressão severa (PHNG e Área Conv. FGT)</td></tr>
+            <tr><td>Obras com execução &gt; 60%</td><td>3 de 5</td><td><span class="badge b-success">POSITIVO</span></td><td>CAFAM (70%), Área Conv. (78,54%) e 3ªCIA FZO (61%) avançam bem</td></tr>
+            <tr><td>Disponibilidade de equipamentos (PHNG)</td><td>66,7%</td><td><span class="badge b-danger">CRÍTICO</span></td><td>Única obra com frota; 33% inoperante compromete operação</td></tr>
+            <tr><td>Obras com estoque em risco</td><td>2 de 5</td><td><span class="badge b-danger">CRÍTICO</span></td><td>PHNG (areia 1 semana) e Canil (estoque zerado)</td></tr>
+            <tr><td>Obras com prazo ameaçado</td><td>1 de 5</td><td><span class="badge b-danger">CRÍTICO</span></td><td>Área Convivência FGT — prazo 31/MAR é inalcançável</td></tr>
+            <tr><td>Efetivo total mobilizado</td><td>~50 (real)</td><td><span class="badge b-success">ADEQUADO</span></td><td>Todas as obras com pessoal mobilizado. Sem registro de deficiência de efetivo.</td></tr>
+            <tr><td>Recursos 100% repassados</td><td>5 de 5</td><td><span class="badge b-success">POSITIVO</span></td><td>Não há pendência financeira de repasse em nenhuma obra</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PERGUNTAS ESTRATÉGICAS -->
+    <div class="coe-section">
+      <h3>7. Perguntas Estratégicas que os Dados Passam a Exigir</h3>
+      <div class="summary-box">
+        <strong>1.</strong> Qual será o novo prazo formal da Área de Convivência FGT? O descumprimento do prazo de 31/MAR gera impacto institucional?<br><br>
+        <strong>2.</strong> A 16ª CIA PE tem capacidade financeira e logística de manter o fluxo de insumos para o Canil até 15/MAI? O estoque zerado é uma condição operacional normal (just-in-time) ou reflexo de descontinuidade?<br><br>
+        <strong>3.</strong> Após a conclusão da 3ª CIA FZO (previsivelmente próxima, com 61%), o efetivo será remanejado integralmente para o PAV CMD? Isso é suficiente para acelerar a obra de 8% para um patamar aceitável?<br><br>
+        <strong>4.</strong> O Pq/Mnt 7ª RM tem previsão realista para as peças da CQT e RE do PHNG? Há verba para locação emergencial?<br><br>
+        <strong>5.</strong> Existe um cronograma mestre consolidado que integre todas as 5 obras com marcos, dependências e previsões de conclusão? Se não, esta é uma lacuna de planejamento relevante.<br><br>
+        <strong>6.</strong> O consumo diário de insumos está sendo rastreado sistematicamente em todas as obras? A ausência de dados de estoque detalhado na maioria dos RDOs impede projeções de ruptura.<br><br>
+        <strong>7.</strong> Qual o percentual de execução financeira (não apenas física) de cada obra? Os RDOs não informam saldo financeiro consumido vs. disponível.
+      </div>
+    </div>
+
+    <!-- LIMITAÇÕES -->
+    <div class="coe-section">
+      <h3>8. Limitações da Base Documental</h3>
+      <div class="summary-box">
+        <strong>Limitações identificadas nos 5 RDOs analisados:</strong><br><br>
+        • <strong>Sem execução financeira:</strong> Nenhum RDO informa percentual financeiro consumido, saldo disponível ou curva de desembolso. A análise financeira limita-se a valores nominais de repasse.<br><br>
+        • <strong>Sem cronograma integrado:</strong> Apenas 2 obras (Canil e Área Conv. FGT) informam previsão de conclusão. As demais não possuem marcos temporais.<br><br>
+        • <strong>Dados de estoque heterogêneos:</strong> O Canil e a Área de Convivência apresentam estoque detalhado item a item; o PHNG informa qualitativamente; a CAFAM e as obras do 14ºBIMtz não informam estoque.<br><br>
+        • <strong>Sem taxa de consumo padronizada:</strong> A maioria dos RDOs não informa consumo diário por insumo, impedindo projeções de ruptura.<br><br>
+        • <strong>Efetivo compartilhado:</strong> As obras do 14ºBIMtz (3ª CIA FZO e PAV CMD) e do FGT (Canil e Área Conv.) compartilham efetivo, mas não há indicação clara de alocação por obra/dia.<br><br>
+        • <strong>Percentual geral da PHNG não explicitado:</strong> O RDO Nº 42 não informa um percentual geral consolidado. O ~55% utilizado nesta análise é uma estimativa derivada dos percentuais de meio-fio (71,86%) e paralelepípedo (52,45%), ponderados pela relevância relativa de cada frente. Esta é uma interpretação analítica, não um dado direto do documento.<br><br>
+        • <strong>Nomenclatura de equipamentos:</strong> Siglas como RE, CPD, MC, CQT não possuem dicionário formal nos RDOs.
+      </div>
+    </div>
+
+    <!-- ASSINATURA COE -->
+    <div class="panel" style="border:2px solid var(--primary-2);">
+      <h2 style="text-align:center;">Análise Desenvolvida pelo SC Marcelo — COE</h2>
+      <div class="signature" style="text-align:center;margin-top:20px;">
+        Centro de Operações de Engenharia<br>
+        Data-base da análise: 26 de Março de 2026<br><br>
+        <strong>SC MARCELO</strong><br>
+        COE — Centro de Operações de Engenharia<br><br>
+        <div class="small" style="text-align:center;">
+          Este documento foi elaborado com base exclusivamente nos dados contidos nos RDOs nº 42 (PHNG), nº 123 (3ª CIA FZO), nº 28 (PAV CMD), nº 79 (CAFAM) e nºs 47/96 (Canil/Área Conv. FGT), todos datados de 26/MAR/2026. Nenhum dado foi inventado, estimado ou importado de fontes externas. Interpretações analíticas e recomendações estão explicitamente diferenciadas dos fatos observados.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+  function openTab(id, btn){
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    renderCharts();
+  }
+
+  function renderCharts(){
+    if(window.c1) window.c1.destroy();
+    if(window.c2) window.c2.destroy();
+
+    const ctx1 = document.getElementById('chartConsolidado');
+    if(ctx1){
+      window.c1 = new Chart(ctx1, {
+        type:'bar',
+        data:{
+          labels:['PHNG\nAcesso 02','3ª CIA FZO\n14ºBIMtz','PAV CMD\n14ºBIMtz','CAFAM\nHGeF','Canil\nFGT','Área Conv.\nFGT'],
+          datasets:[{
+            label:'% Execução',
+            data:[55, 61, 8, 70, 24.13, 78.54],
+            backgroundColor:['#d97706','#2e6da4','#c0392b','#198754','#d97706','#198754'],
+            borderColor:['#b45309','#1f4e79','#922b21','#146c43','#b45309','#146c43'],
+            borderWidth:1
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{labels:{color:'#1f2937'}},
+            tooltip:{callbacks:{label:ctx=>`${ctx.raw}%`}}
+          },
+          scales:{
+            x:{ticks:{color:'#374151',font:{size:10}},grid:{color:'#d6e1ec'}},
+            y:{ticks:{color:'#374151',callback:v=>v+'%'},grid:{color:'#d6e1ec'},beginAtZero:true,max:100}
+          }
+        }
+      });
+    }
+
+    const ctx2 = document.getElementById('chartValor');
+    if(ctx2){
+      window.c2 = new Chart(ctx2, {
+        type:'doughnut',
+        data:{
+          labels:['PHNG (R$ 1,3Mi)','3ª CIA FZO (R$ 826mi)','PAV CMD (R$ 891mi)','CAFAM (R$ 160mi)','Canil (R$ 445mi)','Área Conv. (R$ 119mi)'],
+          datasets:[{
+            data:[1300000, 826194.66, 890909.53, 160000, 445025.77, 118799.38],
+            backgroundColor:['#1f4e79','#2e6da4','#355c7d','#14b8a6','#d97706','#0f766e'],
+            borderColor:'#fff',
+            borderWidth:2
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{position:'bottom',labels:{color:'#1f2937',font:{size:10},padding:8}},
+            tooltip:{callbacks:{label:ctx=>{
+              const v = ctx.raw;
+              return `${ctx.label}: R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            }}}
+          }
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', renderCharts);
+</script>
+</body>
+</html>
