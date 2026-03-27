@@ -1,2 +1,2 @@
-# Painel-Consolidado-de-Opera-es-de-Engenharia
+# Painel-Consolidado-OMED
 Painel Consolidado de Operações de Engenharia- OMED
